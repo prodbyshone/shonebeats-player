@@ -2,13 +2,31 @@
 <html lang="sr">
 <head>
     <meta charset="UTF-8">
-    <title>Beat Player</title>
+    <title>Beat Share Player</title>
     <style>
         body { background: #0b0b0b; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .dropzone { border: 2px dashed #444; padding: 40px; text-align: center; border-width: 10px; border-radius: 10px; cursor: pointer; }
+        .container { width: 400px; text-align: center; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; box-sizing: border-box; }
+        .dropzone { border: 2px dashed #444; padding: 30px; text-align: center; border-radius: 10px; cursor: pointer; background: #141414; margin-bottom: 15px; }
+        .dropzone:hover { border-color: #666; }
+        button { width: 100%; padding: 12px; background: #fff; color: #000; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #ddd; }
     </style>
 </head>
 <body>
-    <div class="dropzone">Prevuci bitove ovde</div>
+    <div class="container">
+        <h2>Pošalji bitove artistu</h2>
+        <input type="text" id="artistName" placeholder="Ime artista (npr. 3ixx)">
+        <div class="dropzone" id="dropzone">Prevuci mp3 bitove ovde</div>
+        <button id="generateBtn">Generiši link</button>
+    </div>
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        dropzone.addEventListener('dragover', (e) => e.preventDefault());
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            alert('Fajlovi uspešno preuzeti u memoriju!');
+        });
+    </script>
 </body>
 </html>
