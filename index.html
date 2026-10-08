@@ -2,46 +2,176 @@
 <html lang="sr">
 <head>
     <meta charset="UTF-8">
-    <title>Beat Share Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal MP3 Player</title>
     <style>
-        body { background: #0b0b0b; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { width: 400px; text-align: center; }
-        input { width: 100%; padding: 10px; margin-bottom: 15px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; box-sizing: border-box; }
-        .dropzone { border: 2px dashed #444; padding: 30px; text-align: center; border-radius: 10px; cursor: pointer; background: #141414; margin-bottom: 15px; }
-        .dropzone:hover { border-color: #666; }
-        button { width: 100%; padding: 12px; background: #fff; color: #000; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #ddd; }
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            width: 800px;
+            max-width: 100%;
+        }
+        .player-box {
+            flex: 1;
+            border: 2px dashed #333;
+            padding: 40px;
+            text-align: center;
+            border-radius: 12px;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .playlist-box {
+            width: 300px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h3 { margin-top: 0; font-size: 16px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        ul { list-style: none; padding: 0; margin: 0; overflow-y: auto; max-height: 250px; }
+        li {
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #141414;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background 0.2s;
+        }
+        li:hover { background: #222; }
+        li.active { background: #333; border-left: 3px solid #fff; }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.8; }
+        .track-title { font-size: 14px; color: #888; margin-bottom: 15px; }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <h2>Pošalji bitove artistu</h2>
-        <input type="text" id="artistName" placeholder="Ime artista (npr. 3ixx)">
-        <div class="dropzone" id="dropzone">Prevuci mp3 bitove ovde</div>
-        <button id="generateBtn">Generiši link</button>
+        <!-- Plejer i zona za prevlačenje -->
+        <div class="player-box" id="dropzone">
+            <div class="track-title" id="nowPlaying">Nema izabrane pesme</div>
+            <p>Prevuci MP3 fajlove ovde</p>
+            <div class="controls">
+                <button id="playBtn">Play</button>
+                <button id="pauseBtn">Pause</button>
+            </div>
+        </div>
+
+        <!-- Lista pesama -->
+        <div class="playlist-box">
+            <h3>Playlist</h3>
+            <ul id="playlist">
+                <!-- Ovde se ubacuju pesme -->
+            </ul>
+        </div>
     </div>
+
+    <audio id="audioElement"></audio>
+
     <script>
-    const dropzone = document.getElementById('dropzone');
-    
-    dropzone.addEventListener('dragover', (e) => e.preventDefault());
-    
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const files = e.dataTransfer.files;
-        
-        if (files.length > 0 && files[0].type.includes('audio')) {
-            const audioFile = files[0];
-            const audioUrl = URL.createObjectURL(audioFile);
-            
-            // Kreiramo audio element i puštamo pesmu
-            const player = new Audio(audioUrl);
-            player.play();
-            
-            dropzone.textContent = `Puštam: ${audioFile.name}`;
-        } else {
-            alert('Molimo te prevuci validan MP3 fajl!');
+        const dropzone = document.getElementById('dropzone');
+        const audioElement = document.getElementById('audioElement');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const playlistEl = document.getElementById('playlist');
+        const nowPlaying = document.getElementById('nowPlaying');
+
+        let tracks = [];
+        let currentIndex = 0;
+
+        // Sprečavanje otvaranja fajla u browseru pri prevlačenju
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, e => e.preventDefault(), false);
+        });
+
+        // Prihvatanje prevučenih fajlova
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            for (let file of files) {
+                if (file.type.includes('audio') || file.name.endsWith('.mp3')) {
+                    tracks.push({
+                        name: file.name,
+                        url: URL.createObjectURL(file)
+                    });
+                }
+            }
+            updatePlaylistUI();
+            if (tracks.length === files.length && tracks.length > 0) {
+                playTrack(0);
+            }
+        });
+
+        function updatePlaylistUI() {
+            playlistEl.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.textContent = track.name;
+                if (index === currentIndex) li.classList.add('active');
+                li.addEventListener('click', () => playTrack(index));
+                playlistEl.appendChild(li);
+            });
         }
-    });
-</script>
+
+        function playTrack(index) {
+            if (tracks.length === 0) return;
+            currentIndex = index;
+            audioElement.src = tracks[currentIndex].url;
+            audioElement.play();
+            nowPlaying.textContent = `Svira: ${tracks[currentIndex].name}`;
+            updatePlaylistUI();
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (audioElement.src) {
+                audioElement.play();
+            } else if (tracks.length > 0) {
+                playTrack(0);
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            audioElement.pause();
+        });
+
+        audioElement.addEventListener('ended', () => {
+            if (currentIndex + 1 < tracks.length) {
+                playTrack(currentIndex + 1);
+            }
+        });
+    </script>
 </body>
 </html>
