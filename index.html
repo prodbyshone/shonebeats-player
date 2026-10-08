@@ -21,12 +21,27 @@
         <button id="generateBtn">Generiši link</button>
     </div>
     <script>
-        const dropzone = document.getElementById('dropzone');
-        dropzone.addEventListener('dragover', (e) => e.preventDefault());
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            alert('Fajlovi uspešno preuzeti u memoriju!');
-        });
-    </script>
+    const dropzone = document.getElementById('dropzone');
+    
+    dropzone.addEventListener('dragover', (e) => e.preventDefault());
+    
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        
+        if (files.length > 0 && files[0].type.includes('audio')) {
+            const audioFile = files[0];
+            const audioUrl = URL.createObjectURL(audioFile);
+            
+            // Kreiramo audio element i puštamo pesmu
+            const player = new Audio(audioUrl);
+            player.play();
+            
+            dropzone.textContent = `Puštam: ${audioFile.name}`;
+        } else {
+            alert('Molimo te prevuci validan MP3 fajl!');
+        }
+    });
+</script>
 </body>
-</html>    
+</html>
